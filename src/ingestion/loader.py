@@ -1,43 +1,56 @@
 from sqlalchemy.orm import Session
-from src.core.models import CryptoData
+from sqlalchemy.dialects.postgresql import insert
+from typing import List, Dict
+from src.core.models import CryptoData # Import your SQLAlchemy model
 
-def load_data(db: Session, data: list):
+def load_data(db: Session, data: List[Dict]) -> int:
     """
-    Inserts data into Postgres.
-    Prevents duplicates within the batch AND against the database.
+    Performs an Idempotent Bulk UPSERT (Update or Insert) operation (P1.2).
+
+    Data is considered unique based on the composite key: (symbol, timestamp, source).
+    If a record with the same key exists, its price/market_cap are updated (UPSERT).
+    
+    Args:
+        db: The SQLAlchemy database session.
+        data: A list of dictionaries, where each dict is a row conforming to the UnifiedCryptoData schema.
+
+    Returns:
+        The total number of records successfully processed (inserted or updated).
     """
     if not data:
         return 0
-        
-    count = 0
-    # 1. Memory Cache to track what we have seen in this specific run
-    seen_in_batch = set()
 
-    for record in data:
-        # Create a unique signature for this record (Symbol + Date + Source)
-        record_key = (record['symbol'], record['timestamp'], record['source'])
-
-        # CHECK 1: Have we already seen this in the CURRENT list?
-        if record_key in seen_in_batch:
-            continue
-        
-        # CHECK 2: Does it exist in the DATABASE?
-        existing = db.query(CryptoData).filter(
-            CryptoData.symbol == record['symbol'],
-            CryptoData.timestamp == record['timestamp'],
-            CryptoData.source == record['source']
-        ).first()
-
-        if not existing:
-            db_obj = CryptoData(**record)
-            db.add(db_obj)
-            seen_in_batch.add(record_key) # Mark as seen
-            count += 1
-            
     try:
+        # 1. Define the unique composite key for conflict resolution.
+        # This MUST match the UniqueConstraint defined on your CryptoData model:
+        conflict_target = [CryptoData.symbol, CryptoData.source, CryptoData.timestamp]
+        
+        # 2. Prepare the bulk INSERT statement
+        insert_stmt = insert(CryptoData).values(data)
+        
+        # 3. Define what to do ON CONFLICT (the Idempotency core)
+        # If a conflict on the key is detected, UPDATE the price and market_cap.
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=conflict_target,
+            set_={
+                # Use insert_stmt.excluded to refer to the data trying to be inserted
+                'price_usd': insert_stmt.excluded.price_usd,
+                'market_cap': insert_stmt.excluded.market_cap,
+                # Add any other columns you want to update on conflict
+            }
+        )
+
+        # 4. Execute and Commit
+        # We execute the bulk UPSERT in a single, fast database call.
+        db.execute(upsert_stmt)
         db.commit()
-        return count
+        
+        # The total number of records processed is the size of the input list.
+        print(f"LOAD: Successfully processed {len(data)} records via Idempotent UPSERT.")
+        return len(data)
+
     except Exception as e:
         db.rollback()
-        print(f"Database Insert Error: {e}")
-        return 0
+        print(f"LOAD CRITICAL ERROR: Idempotent bulk UPSERT failed: {e}")
+        # Reraise the exception to be caught by the ETLRun failure logic in etl_service.py
+        raise

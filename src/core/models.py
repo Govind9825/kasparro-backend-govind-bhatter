@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstraint
 from sqlalchemy.orm import declarative_base
+from datetime import datetime
+from sqlalchemy.dialects.postgresql import JSON
 
 Base = declarative_base()
 
@@ -17,3 +19,17 @@ class CryptoData(Base):
     __table_args__ = (
         UniqueConstraint('symbol', 'timestamp', 'source', name='uix_symbol_time_source'),
     )
+
+class ETLRun(Base):
+    __tablename__ = "etl_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    start_time = Column(DateTime, default=datetime.utcnow)
+    end_time = Column(DateTime, nullable=True)
+    status = Column(String, default="RUNNING") # SUCCESS, FAILURE
+    duration_ms = Column(Integer, nullable=True) # Duration in milliseconds
+    records_processed = Column(Integer, default=0)
+    error_message = Column(String, nullable=True)
+    # P1.2/P2.2 requirement - for storing checkpoint data if needed
+    metadata_json = Column(JSON, nullable=True)

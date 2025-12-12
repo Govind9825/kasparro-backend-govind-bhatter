@@ -1,4 +1,4 @@
-
+version: '3.8'
 services:
   # 1. The Database Service (Postgres)
   db:
@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,13 +21,17 @@ services:
   # 2. Your App Service (The ETL + API)
   backend:
     build: .
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    # Command is now handled by ENTRYPOINT in Dockerfile
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     env_file:
       - .env
+    # P0.3 Fix: Add DNS for reliable external API access
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     depends_on:
       db:
         condition: service_healthy

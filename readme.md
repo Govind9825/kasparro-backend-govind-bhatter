@@ -1,65 +1,160 @@
-# Kasparro Backend & ETL System
+\# 🚀 Kasparro Backend \& ETL System  
+\#\#\# P0 + P1 Implementation
 
-## Overview
-A production-grade ETL pipeline and REST API that ingests cryptocurrency data from CoinPaprika (API) and legacy CSV files, normalizes it into a unified schema, and stores it in PostgreSQL.
+This project implements a production-grade \*\*ETL pipeline\*\* and \*\*backend API\*\* capable of ingesting, transforming, normalizing, and serving cryptocurrency data from multiple heterogeneous sources.
 
-## Architecture
-- **Language:** Python 3.10
-- **Framework:** FastAPI
-- **Database:** PostgreSQL 15
-- **Containerization:** Docker & Docker Compose
-- **Validation:** Pydantic
-- **Deployment:** Azure VM (Ubuntu) + Cron Job
+It fulfills all required tasks for \*\*P0 (Foundation Layer)\*\* and \*\*P1 (Growth Layer)\*\*.
 
-## Features
-- **Unified Schema:** Normalizes data from different sources (API vs CSV) into a single `unified_crypto_data` table.
-- **Idempotency:** Prevents duplicate records using composite keys.
-- **Health Check:** `/health` endpoint monitors DB connectivity.
-- **Automated Testing:** Pytest suite covering ETL logic and API endpoints.
+---
 
-## Cloud Deployment
-The system is live on Azure.
-- **Public URL:** http://98.70.24.63:8000/health
-- **Scheduled Job:** Hourly Cron Job.
+\#\#\# 📘 Table of Contents  
+\- Overview  
+\- Architecture  
+\- Features  
+\- Local Setup  
+\- API Endpoints  
+\- Cloud Deployment  
+\- Project Structure  
 
-## How to Run (Local)
+---
 
-### 1. Clone the repository
-```bash
-git clone [https://github.com/Govind9825/kasparro-backend-govind-bhatter.git](https://github.com/Govind9825/kasparro-backend-govind-bhatter.git)
+\# 🌟 Overview
+
+The Kasparro system processes crypto data from \*\*three ingestion sources\*\*:
+
+1. CoinPaprika API  
+2. CoinCap API  
+3. Legacy CSV file  
+
+All incoming data is normalized into a \*\*single unified schema\*\* and stored in PostgreSQL using idempotent UPSERT logic.
+
+---
+
+\# 🧱 Architecture
+
+\| Component \| Technology \| Purpose \|  
+\|----------\|------------\|---------\|  
+\| Backend API \| FastAPI \| High-performance Python API \|  
+\| ETL Pipeline \| Python \| Ingestion, transformation \|  
+\| Database \| PostgreSQL 15 \| UPSERT + storage \|  
+\| Containers \| Docker, Docker Compose \| Reproducible runtime \|  
+\| Validation \| Pydantic \| Schema enforcement \|  
+\| Testing \| Pytest \| ETL + API testing \|  
+
+---
+
+\# 🚀 Features (P0 + P1)
+
+\#\# ✔️ P0 Features  
+\- Unified schema  
+\- ETL ingestion from at least one source  
+\- Basic FastAPI service  
+\- /health and /data endpoints  
+\- Dockerized environment  
+
+\#\# ✔️ P1 Features  
+\- Ingests data from 3 sources (CSV + 2 APIs)  
+\- Incremental ingestion via etl\_runs checkpointing  
+\- Idempotent UPSERT logic  
+\- /stats endpoint for ETL metadata  
+\- /run-etl endpoint for on-demand execution  
+\- Cloud deployment with Azure VM  
+\- Hourly ETL scheduling via Azure Cron  
+\- Centralized logs via Azure Monitor  
+
+---
+
+\# 💻 Local Setup
+
+\#\# 1. Prerequisites  
+Docker  
+Docker Compose  
+make (optional)
+
+\#\# 2. Clone Repository  
+git clone \[YOUR\_REPO\_URL\]  
 cd kasparro-backend-govind-bhatter
-```
 
-### 2. Configure Environment
-Create a `.env` file in the root directory:
-```env
-COINPAPRIKA_API_KEY=dummy-key-for-assignment
-POSTGRES_USER=kasparro_user
-POSTGRES_PASSWORD=kasparro_password
-POSTGRES_DB=crypto_db
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-```
+\#\# 3. Create .env file  
+POSTGRES\_USER=kasparro\_user  
+POSTGRES\_PASSWORD=kasparro\_password  
+POSTGRES\_DB=crypto\_db  
+COINPAPRIKA\_API\_KEY=dummy  
+COINCAP\_API\_KEY=dummy  
 
-### 3. Data Setup (CSV)
-Ensure the legacy data file exists at `data/coins.csv`. If missing, generate it:
-```bash
-python generate_csv.py
-```
+\#\# 4. Run CSV generator  
+python generate\_csv.py
 
-### 4. Run the System
-Build and start the services:
-```bash
+\#\# 5. Start services  
 make up
-```
 
-### 5. Test the System
-Run the automated test suite:
-```bash
-make test
-```
+Stop:  
+make down
 
-## API Endpoints
-- **Health Check:** `http://localhost:8000/health`
-- **Documentation:** `http://localhost:8000/docs`
-- **Trigger ETL:** `POST http://localhost:8000/run-etl`
+---
+
+\# 🌐 API Endpoints
+
+Base URL: http:\/\/localhost:8000
+
+\| Endpoint \| Method \| Description \|  
+\|----------\|--------\|-------------\|  
+\| /health \| GET \| Returns DB \& ETL status \|  
+\| /data \| GET \| Paginated crypto data \|  
+\| /stats \| GET \| ETL summary \|  
+\| /run-etl \| POST \| Trigger ETL pipeline \|  
+\| /docs \| GET \| Swagger UI \|  
+
+---
+
+\# ☁️ Cloud Deployment
+
+Public Endpoint:  
+http:\/\/98.70.24.63:8000/health
+
+Scheduled ETL:  
+Azure Cloud Scheduler → POST /run-etl hourly
+
+Logs:  
+Azure Monitor / Log Analytics
+
+---
+
+\# 📁 Project Structure
+
+kasparro-backend/  
+\|\_\_ app/  
+\|   \|\_\_ api/  
+\|   \|   routes.py  
+\|   \|   validators.py  
+\|   \|\_\_ etl/  
+\|   \|   extract.py  
+\|   \|   transform.py  
+\|   \|   load.py  
+\|   \|   utils.py  
+\|   \|\_\_ models/  
+\|   \|   schemas.py  
+\|   \|\_\_ db/  
+\|   \|   connection.py  
+\|   \|   migrations.sql  
+\|   main.py  
+\|\_\_ data/  
+\|   coins.csv  
+docker-compose.yml  
+Dockerfile  
+entrypoint.sh  
+requirements.txt  
+README.md
+
+---
+
+\# ✅ Summary
+
+This repository provides a full ETL + API backend that:  
+\- Ingests multi-source crypto data  
+\- Validates it via Pydantic  
+\- Stores it with PostgreSQL UPSERT idempotency  
+\- Exposes APIs for querying  
+\- Deploys to Azure VM  
+\- Runs scheduled ETL via Azure Cron  
+
