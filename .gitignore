@@ -1,0 +1,11 @@
+# Python compile files (Junk)
+__pycache__/
+*.pyc
+
+# Environment Variables (Security Risk!)
+.env
+.venv
+venv/
+
+# OS generated files
+.DS_Store
